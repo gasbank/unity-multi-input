@@ -59,7 +59,42 @@ static public class Win32
         
     internal const int SC_SHIFT_R = 0x36;     
     internal const int SC_SHIFT_L = 0x2a;   
-    internal const int RIM_INPUT = 0x00; 
+    internal const int RIM_INPUT = 0x00;
     // ReSharper restore InconsistentNaming
-        
+
+
+    public static int VirtualKeyCorrection(int virtualKey, bool isE0BitSet, int makeCode)
+    {
+        var correctedVKey = virtualKey;
+
+        //if (_rawBuffer.header.hDevice == IntPtr.Zero)
+        //{
+        //    // When hDevice is 0 and the vkey is VK_CONTROL indicates the ZOOM key
+        //    if (_rawBuffer.data.keyboard.VKey == Win32.VK_CONTROL)
+        //    {
+        //        correctedVKey = Win32.VK_ZOOM;
+        //    }
+        //}
+        //else
+        {
+            switch (virtualKey)
+            {
+                // Right-hand CTRL and ALT have their e0 bit set 
+                case Win32.VK_CONTROL:
+                    correctedVKey = isE0BitSet ? Win32.VK_RCONTROL : Win32.VK_LCONTROL;
+                    break;
+                case Win32.VK_MENU:
+                    correctedVKey = isE0BitSet ? Win32.VK_RMENU : Win32.VK_LMENU;
+                    break;
+                case Win32.VK_SHIFT:
+                    correctedVKey = makeCode == Win32.SC_SHIFT_R ? Win32.VK_RSHIFT : Win32.VK_LSHIFT;
+                    break;
+                default:
+                    correctedVKey = virtualKey;
+                    break;
+            }
+        }
+
+        return correctedVKey;
+    }
 }
