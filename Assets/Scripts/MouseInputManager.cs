@@ -83,19 +83,11 @@ public class MouseInputManager : MonoBehaviour
     int nextPlayerId = 1;
     int miceCount = 0;
 
-    //Canvas canvas;
-    RectTransform canvasRect;
-    //float width, height;
+    Dictionary<int, Dictionary<string, Boolean>> pressedKeysByDeviceId = new Dictionary<int, Dictionary<string, bool>>();
 
     void Start()
     {
-        
-        bool res = init();
-        //Debug.Log("Init() ==> " + res);
-        //Debug.Log(Marshal.SizeOf(typeof(RawInputEvent)));
-        //canvas = GetComponent<Canvas>();
-        canvasRect = GetComponent<RectTransform>();
-        //enterSingleMode();
+        init();
     }
 
     public void OnDestroy()
@@ -200,7 +192,7 @@ public class MouseInputManager : MonoBehaviour
     bool isInit = true;
     void Update()
     {
-        moveDeltaByDeviceId.Clear();
+        //moveDeltaByDeviceId.Clear();
         // Keyboard controls debug
         //if (Input.GetKeyDown(KeyCode.R))
         //{
@@ -299,34 +291,45 @@ public class MouseInputManager : MonoBehaviour
                     //    ev.keyboardFlags,
                     //    ev.keyboardVkey);
 
-                    if (moveDeltaByDeviceId.ContainsKey(ev.devHandle) == false)
+                    if (!pressedKeysByDeviceId.ContainsKey(ev.devHandle))
                     {
-                        moveDeltaByDeviceId[ev.devHandle] = Vector3.zero;
+                        pressedKeysByDeviceId[ev.devHandle] = new Dictionary<string, bool>();
                     }
-
-                    if (keyName == "LEFT" && isBreakBitSet == false)
-                    {
-                        moveDeltaByDeviceId[ev.devHandle] += Vector3.left;
-                    }
-                    if (keyName == "RIGHT" && isBreakBitSet == false)
-                    {
-                        moveDeltaByDeviceId[ev.devHandle] += Vector3.right;
-                    }
-                    if (keyName == "UP" && isBreakBitSet == false)
-                    {
-                        moveDeltaByDeviceId[ev.devHandle] += Vector3.forward;
-                    }
-                    if (keyName == "DOWN" && isBreakBitSet == false)
-                    {
-                        moveDeltaByDeviceId[ev.devHandle] += Vector3.back;
-                    }
+                    pressedKeysByDeviceId[ev.devHandle][keyName] = (isBreakBitSet == false);
                 }
             }
             Marshal.FreeCoTaskMem(data);
         }
+        
+        foreach (var pk in pressedKeysByDeviceId)
+        {
+            var devHandle = pk.Key;
+            var pressedKeys = pk.Value;
 
+            Vector3[] pressed = new Vector3[4];
+            bool[] dirPressed = new bool[4];
+            if (pressedKeys.TryGetValue("LEFT", out dirPressed[0]) && dirPressed[0])
+            {
+                pressed[0] = Vector3.left;
+            }
+            if (pressedKeys.TryGetValue("RIGHT", out dirPressed[1]) && dirPressed[1])
+            {
+                pressed[1] = Vector3.right;
+            }
+            if (pressedKeys.TryGetValue("UP", out dirPressed[2]) && dirPressed[2])
+            {
+                pressed[2] = Vector3.forward;
+            }
+            if (pressedKeys.TryGetValue("DOWN", out dirPressed[3]) && dirPressed[3])
+            {
+                pressed[3] = Vector3.back;
+            }
+            moveDeltaByDeviceId[devHandle] = pressed[0] + pressed[1] + pressed[2] + pressed[3];
+        }
+        
         foreach (var md in moveDeltaByDeviceId)
         {
+
             if (md.Value != Vector3.zero)
             {
                 var moveDelta = md.Value.normalized * Time.deltaTime * moveSpeed;
