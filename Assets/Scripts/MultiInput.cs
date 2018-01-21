@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 using System;
 using System.Collections.Generic;
 
-public class MouseInputManager : MonoBehaviour
+public class MultiInput : MonoBehaviour
 {
     [DllImport("LibRawInput")]
     private static extern bool init();
@@ -19,8 +19,6 @@ public class MouseInputManager : MonoBehaviour
     private static extern IntPtr poll();
 
     public bool verbose;
-    public GameObject moveGameObjectPrefab;
-    public float moveSpeed = 4.0f;
 
     public const byte RE_DEVICE_CONNECT = 0;
     public const byte RE_MOUSE = 2;
@@ -52,11 +50,9 @@ public class MouseInputManager : MonoBehaviour
         public ushort keyboardMakeCode;
     }
 
-    Dictionary<int, GameObject> moveGameObjectsByDeviceId = new Dictionary<int, GameObject>();
-    Dictionary<int, Vector3> moveDeltaByDeviceId = new Dictionary<int, Vector3>();
-    Dictionary<int, Dictionary<string, Boolean>> keysByDeviceId = new Dictionary<int, Dictionary<string, bool>>();
-    Dictionary<int, Dictionary<string, Boolean>> downKeysByDeviceId = new Dictionary<int, Dictionary<string, bool>>();
-    Dictionary<int, Dictionary<string, Boolean>> upKeysByDeviceId = new Dictionary<int, Dictionary<string, bool>>();
+    static Dictionary<int, Dictionary<string, Boolean>> keysByDeviceId = new Dictionary<int, Dictionary<string, bool>>();
+    static Dictionary<int, Dictionary<string, Boolean>> downKeysByDeviceId = new Dictionary<int, Dictionary<string, bool>>();
+    static Dictionary<int, Dictionary<string, Boolean>> upKeysByDeviceId = new Dictionary<int, Dictionary<string, bool>>();
 
     void Start()
     {
@@ -95,12 +91,19 @@ public class MouseInputManager : MonoBehaviour
 
             if (ev.type == RE_DEVICE_CONNECT)
             {
-                Debug.LogFormat("Device connected: handle {0}", ev.devHandle);
+                if (verbose)
+                {
+                    Debug.LogFormat("Device connected: handle {0}", ev.devHandle);
+                }
+                SendMessageUpwards("OnInputDeviceConnect", ev.devHandle, SendMessageOptions.DontRequireReceiver);
             }
             else if (ev.type == RE_DEVICE_DISCONNECT)
             {
-                Debug.LogFormat("Device disconnected: handle {0}", ev.devHandle);
-                DestroyMoveObject(ev.devHandle);
+                if (verbose)
+                {
+                    Debug.LogFormat("Device disconnected: handle {0}", ev.devHandle);
+                }
+                SendMessageUpwards("OnInputDeviceDisconnect", ev.devHandle, SendMessageOptions.DontRequireReceiver);
             }
             else if (ev.type == RE_KEYBOARD)
             {
@@ -125,7 +128,7 @@ public class MouseInputManager : MonoBehaviour
                 {
                     keysByDeviceId[ev.devHandle] = new Dictionary<string, bool>();
                 }
-                var oldPressed = IsKeyPressed(ev.devHandle, keyName);
+                var oldPressed = GetKey(ev.devHandle, keyName);
                 var newPressed = (isBreakBitSet == false);
                 keysByDeviceId[ev.devHandle][keyName] = newPressed;
 
@@ -152,31 +155,6 @@ public class MouseInputManager : MonoBehaviour
         }
         Marshal.FreeCoTaskMem(data);
 
-        foreach (var pk in keysByDeviceId)
-        {
-            var devHandle = pk.Key;
-            var pressedKeys = pk.Value;
-
-            Vector3[] pressed = new Vector3[4];
-            if (IsKeyTrue(pressedKeys, "LEFT"))
-            {
-                pressed[0] = Vector3.left;
-            }
-            if (IsKeyTrue(pressedKeys, "RIGHT"))
-            {
-                pressed[1] = Vector3.right;
-            }
-            if (IsKeyTrue(pressedKeys, "UP"))
-            {
-                pressed[2] = Vector3.forward;
-            }
-            if (IsKeyTrue(pressedKeys, "DOWN"))
-            {
-                pressed[3] = Vector3.back;
-            }
-            moveDeltaByDeviceId[devHandle] = pressed[0] + pressed[1] + pressed[2] + pressed[3];
-        }
-
         if (verbose)
         {
             foreach (var pk in downKeysByDeviceId)
@@ -201,52 +179,42 @@ public class MouseInputManager : MonoBehaviour
                 }
             }
         }
-
-        foreach (var md in moveDeltaByDeviceId)
-        {
-
-            if (md.Value != Vector3.zero)
-            {
-                var moveDelta = md.Value.normalized * Time.deltaTime * moveSpeed;
-                GetMoveObject(md.Key).transform.Translate(moveDelta);
-            }
-        }
     }
 
-    bool IsKeyPressed(int devHandle, string name)
+    public static bool GetKey(int devHandle, string keyName)
     {
         Dictionary<string, bool> pressedKeys;
         if (keysByDeviceId.TryGetValue(devHandle, out pressedKeys))
         {
-            return IsKeyTrue(pressedKeys, name);
+            return IsKeyTrue(pressedKeys, keyName);
         }
         return false;
     }
 
-    private static bool IsKeyTrue(Dictionary<string, bool> keys, string name)
+    public static bool GetKeyUp(int devHandle, string keyName)
+    {
+        Dictionary<string, bool> pressedKeys;
+        if (upKeysByDeviceId.TryGetValue(devHandle, out pressedKeys))
+        {
+            return IsKeyTrue(pressedKeys, keyName);
+        }
+        return false;
+    }
+
+    public static bool GetKeyDown(int devHandle, string keyName)
+    {
+        Dictionary<string, bool> pressedKeys;
+        if (downKeysByDeviceId.TryGetValue(devHandle, out pressedKeys))
+        {
+            return IsKeyTrue(pressedKeys, keyName);
+        }
+        return false;
+    }
+
+    private static bool IsKeyTrue(Dictionary<string, bool> keys, string keyName)
     {
         bool pressed = false;
-        return keys.TryGetValue(name, out pressed) && pressed;
-    }
-
-    GameObject GetMoveObject(int h)
-    {
-        if (moveGameObjectsByDeviceId.ContainsKey(h) == false)
-        {
-            moveGameObjectsByDeviceId[h] = Instantiate(moveGameObjectPrefab) as GameObject;
-        }
-
-        return moveGameObjectsByDeviceId[h];
-    }
-
-    void DestroyMoveObject(int h)
-    {
-        GameObject moveObject;
-        if (moveGameObjectsByDeviceId.TryGetValue(h, out moveObject))
-        {
-            Destroy(moveObject);
-            moveGameObjectsByDeviceId.Remove(h);
-        }
+        return keys.TryGetValue(keyName, out pressed) && pressed;
     }
 
     void OnApplicationQuit()
