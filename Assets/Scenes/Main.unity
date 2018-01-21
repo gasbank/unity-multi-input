@@ -362,9 +362,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   verbose: 0
-  moveGameObjectPrefab: {fileID: 1000644712543706, guid: 5146eeb0f25e92d4291165b4931195a5,
-    type: 2}
-  moveSpeed: 4
 --- !u!1 &854842096
 GameObject:
   m_ObjectHideFlags: 0
@@ -373,6 +370,7 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 854842098}
+  - component: {fileID: 854842097}
   m_Layer: 0
   m_Name: Multi Input Example
   m_TagString: Untagged
@@ -380,6 +378,20 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &854842097
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 854842096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ba5faadb7b7a544e89be8f7866486ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  moveGameObjectPrefab: {fileID: 1000644712543706, guid: 5146eeb0f25e92d4291165b4931195a5,
+    type: 2}
+  moveSpeed: 4
 --- !u!4 &854842098
 Transform:
   m_ObjectHideFlags: 0
