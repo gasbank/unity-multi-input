@@ -8,7 +8,6 @@ public class MultiInputExample : MonoBehaviour
     
     Dictionary<int, bool> inputDevices = new Dictionary<int, bool>();
     Dictionary<int, GameObject> moveGameObjectsByDeviceId = new Dictionary<int, GameObject>();
-    Dictionary<int, Vector3> moveDeltaByDeviceId = new Dictionary<int, Vector3>();
     
     void OnInputDeviceConnect(int devHandle)
     {
@@ -23,6 +22,8 @@ public class MultiInputExample : MonoBehaviour
 
     void Update()
     {
+        Dictionary<int, Vector3> moveDeltaByDeviceId = new Dictionary<int, Vector3>();
+
         foreach (var pk in inputDevices)
         {
             var devHandle = pk.Key;
